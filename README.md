@@ -182,6 +182,17 @@ WebDAV 同步书签、历史、快捷入口与常用设置；自动同步只在�
 
 体积差异的原因写在明面上：APK 里 79 MB 是代理核心，剩下的重量就是规则库与图标资源。
 
+## 平台
+
+| 平台 | 状态 | 产物 |
+| --- | --- | --- |
+| Android arm64-v8a | **已发布** | APK 31.9 MB · 装后约 90–100 MB |
+| Android armeabi-v7a（32 位） | **已发布** | APK 32.5 MB |
+| Windows / Linux | 原型 | `desktop/`：Electron 外壳 + 同一份规则库 |
+| iOS | 骨架 | `ios/`：Swift + WKWebView，XcodeGen 工程 |
+
+桌面与 iOS 的移植映射、各系统能力怎么对接，写在 [docs/PLATFORMS.md](docs/PLATFORMS.md)。
+
 ## 工程结构
 
 ```
