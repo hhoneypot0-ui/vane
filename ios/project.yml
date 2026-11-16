@@ -1,0 +1,18 @@
+# XcodeGen 用：xcodegen generate 之后用 Xcode 打开 Vane.xcodeproj
+name: Vane
+options:
+  bundleIdPrefix: com.vane
+targets:
+  Vane:
+    type: application
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: Vane
+      - path: ../app/src/main/assets
+        type: folder
+        name: assets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.vane.browser
+        INFOPLIST_FILE: Vane/Info.plist
