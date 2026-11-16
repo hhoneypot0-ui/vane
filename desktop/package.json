@@ -1,12 +1,53 @@
 {
   "name": "vane-desktop",
+  "productName": "Vane",
   "version": "1.86.3",
-  "description": "Vane desktop prototype (Electron): 同一个主页、同一份广告规则",
+  "description": "Vane 桌面版：浏览器 + 本地广告拦截 + 代理设置",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "sync": "node scripts/sync-assets.js",
+    "start": "npm run sync && electron .",
+    "dist": "npm run sync && electron-builder --win --x64 --arm64 --publish never",
+    "dist:win": "npm run sync && electron-builder --win nsis portable --x64 --publish never"
   },
   "devDependencies": {
-    "electron": "^31.0.0"
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.vane.browser.desktop",
+    "productName": "Vane",
+    "files": [
+      "main.js",
+      "preload.js",
+      "toolbar.html",
+      "assets/**"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "../design/mark-dark-512.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }
