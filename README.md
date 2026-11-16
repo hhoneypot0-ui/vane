@@ -1,24 +1,117 @@
 # Vane · 极简浏览器
 
-一个用起来很安静的浏览器：无广告、无统计、不后台唤醒。
-界面按 Via 那套极简思路重做，但每个按键、手势、菜单项都是数据，能自己改。
+一个用起来很安静的浏览器。无广告、无统计、不后台唤醒，所有数据留在自己手机上。
 
-日常该有的都有：多标签、书签/历史、下载（支持断点和分片）、离线页面、长截图、
-阅读模式、翻译、广告拦截、隐私空间（视频加密存放、30 秒回锁）、用户脚本、云同步（WebDAV）。
+> 界面按 Via 那套极简思路重做，但每个按键、手势、菜单项都是数据，能自己改。
 
-代理是一部分，不是全部：填机场订阅或手贴节点，常见协议开箱能连；
-需要的话可以把整机流量也接进分流，规则按域名/IP 走。
+**下载**：https://github.com/hhoneypot0-ui/vane/releases
 
-- 安装包按 ABI 拆分，两个都只有 31–32 MB：
-  - `app-arm64-v8a-debug.apk` —— 现在绝大多数手机
-  - `app-armeabi-v7a-debug.apk` —— 老 32 位机型
-- 最新已拷到手机：`/sdcard/Download/DSH-Go/vane-1.86.0-arm64.apk`
+---
 
+## 这是什么
 
-### 仓库里没有的东西
+一个 Android 浏览器，单 APK，arm64-v8a / armeabi-v7a 分开打包，每个 31–32 MB。
+
+它不追功能表上的数字，追的是「常用的事少点几下」：地址栏一个长按就能进隐私空间，
+下载页点条目直接装包，网页里长按链接就地出菜单，深色模式不把图片搞成鬼片。
+
+---
+
+## 功能
+
+### 浏览
+
+- 多标签（默认上限 20，可调），标签页切换、关闭左侧/右侧/其它
+- 后退 / 前进 / 刷新 / 停止 / 主页 / 回顶 / 回底
+- 页内查找、查看源码、桌面版网站、屏幕方向锁定、字号缩放、隐藏图片省流量
+- 长按链接菜单：新标签打开、复制、下载、内置播放器、交给系统浏览器、把该域名标记为广告
+- 22 个搜索引擎，可自己加模板（`%s` 占位），长按地址栏快速切换
+
+### 界面自定义
+
+- 底栏按键、菜单项、长按链接菜单、手势映射全部可改，**118 个可绑定动作**
+- 主题：浅色 / 深色 / 纯黑 / 自定义背景色 + 强调色，可导出成 JSON 发给别人
+- 顶栏、底栏可隐藏；高度、圆角可调；全屏阅读；游戏模式（连按两次返回才退出）
+- 主页方块：先放自己加的「快捷入口」（可改名、删除、点按上移、长按拖动排序），再用最近书签补满
+- 自定义字体、自定义菜单图标
+
+### 下载
+
+- 内建下载器：探测 Range 支持后**分片并发 + 断点续传**，状态存盘，暂停后继续不重下
+- 下载页实时进度，点条目直接打开/装包，✕ 一键删（连断点文件一起清）
+- 「下载到隐私空间」把文件直接加密后存进隐私空间
+- 也能交给系统下载器，或从播放器里一键存视频
+
+### 阅读与工具
+
+- **整页长截图**：不会截出黑屏，拼接按实际滚动位置，上限按可用内存算（最低 16000px），超长会提示截到哪
+- **嗅探视频**：只挑主视频 —— 按可见面积、时长、是否在播打分，广告/埋点地址直接排除；其它候选收在「其它 N 个」
+- 内置播放器：HLS/mp4，自动带 Referer，倍速（记住上次）、画中画、锁屏、±10 秒、左右半屏滑动调亮度/音量、一键下载
+- 阅读模式（Readability 提取正文）、朗读网页、打印/存 PDF、保存网页、离线保存与离线页面
+- 扫描二维码、分享当前页、复制网址、用其它应用打开
+
+### 隐私空间
+
+- 长按地址栏进入，**应用内密码**或系统锁屏验证，连续错 3 次自动退出
+- 视频用 AES-GCM 加密存成 `.enc`，密钥在 Android Keystore；**30 秒回锁**
+- 网址也能存进去：从这里打开的页面**不进历史、不进会话恢复**
+- 加密副本可原样导出到 `下载/Vane`，也能再收回隐私空间（离开原机解不开）
+- 删除要二次确认，删完顺手清解密缓存
+
+### 密码与用户脚本
+
+- 密码保存提示（同一表单 4 秒去重），密码管理面板，从 CSV 导入密码，可按站点关闭提示
+- 用户脚本：`@name` / `@match` 解析、GM 存储、GM_xmlhttpRequest、脚本仓库、按 URL 安装、启用/停用/查看/删除
+
+### 同步与备份
+
+- WebDAV 云同步：书签、历史、快捷入口、常用设置一起带走；启动自动同步只在**服务器确实更新**时才拉，
+  冲突弹窗三选一（用服务器的 / 保留本机并上传 / 先不动），「上次结果」写在面板上
+- 备份成 JSON（书签、历史、设置 23 项、主题、代理、快捷入口），也能导成书签 HTML（Chrome/Edge/Via 可读）
+  或纯网址清单；恢复时可直接从 `下载/Vane` 的历史备份里挑
+
+### 代理与拦截
+
+- 常见机场协议开箱可用，订阅链接或手贴节点都能导入，订阅可自动更新
+- 三种分流：规则（国内直连 / 境外走代理）、全局、直连；可选把整机流量接进分流
+- 广告拦截：本地规则不联网、不上报，可调强度、自检统计、按站点放行、点选隐藏、把域名标成广告
+
+### 系统与维护
+
+- 设为默认浏览器入口（跳到系统「默认应用」页）
+- 兼容性自检、WebView 版本自检、运行状态通知、防后台被杀、崩溃日志一键复制
+- 检查更新 / 安装本地 APK；预置版本检查不会偷偷装
+
+---
+
+## 平台
+
+| 项目 | 要求 |
+| --- | --- |
+| 系统 | Android 8.0+（API 26 起，目标 37） |
+| 架构 | `arm64-v8a`（绝大多数手机）/ `armeabi-v7a`（老 32 位机） |
+| 体积 | 31–32 MB |
+
+## 安装
+
+1. 到 [Releases](https://github.com/hhoneypot0-ui/vane/releases) 下对应架构的 APK
+2. 点开安装，允许「安装未知应用」
+3. 想让它当默认浏览器：设置 › 默认浏览器 › 去系统「默认应用」里选 Vane
+
+## 自己构建
+
+```bash
+# 需要 JDK 17 与 Android SDK（compileSdk 37）
+./gradlew :app:assembleDebug
+# 产物：app/build/outputs/apk/debug/app-arm64-v8a-debug.apk
+```
+
+`build.sh` 里是作者本地用的打包 + 拷贝脚本，可以按需改路径。
+
+## 仓库里没有的东西
 
 `app/src/main/jniLibs/*/libsingbox.so`（79 MB + 74 MB）和测试素材没进仓库。
-要自己编译出能连代理的包，把 sing-box 的 Android 产物按 ABI 放到：
+要自己编出能连代理的包，把代理核心的 Android 产物按 ABI 放到：
 
 ```
 app/src/main/jniLibs/arm64-v8a/libsingbox.so
@@ -27,156 +120,25 @@ app/src/main/jniLibs/armeabi-v7a/libsingbox.so
 
 纯浏览器功能（标签、下载、隐私空间、脚本、同步等）不依赖它。
 
----
-
-## 一、代理与分流（这版的重点）
-
-### 能力矩阵
-
-| 节点类型 | 谁来跑 | 说明 |
-|---|---|---|
-| `http` / `socks5` | 内置纯 Java 分流器 | 零依赖，秒开 |
-| `ss` `vmess` `vless` `trojan` `hysteria2` `tuic` | 内置 sing-box 1.14.4 | 随 APK 分发，装完即用 |
-| 想让别的 App 也走分流 | 可选 VPN 服务 | 放 `libhev-socks5-tunnel.so` 到 jniLibs 即启用 |
-
-### 协议参数支持（机场常见写法都能直接粘）
-
-| 参数 | 适用协议 | 说明 |
-|---|---|---|
-| `sni` / `peer` / `servername` | 全部 TLS 类 | 握手域名 |
-| `alpn` | 全部 TLS 类 | 如 `h3`、`h2,http/1.1` |
-| `fp` / `fingerprint` | vless reality / vmess / trojan | uTLS 指纹，reality 默认 `chrome` |
-| `pbk` / `sid` | vless | REALITY 公钥与 shortId |
-| `flow=xtls-rprx-vision` | vless | 原样透传 |
-| `security=reality` | vless | 自动生成 `tls.reality` + `utls` |
-| `obfs` / `obfs-password` | hysteria2 | salamander 混淆 |
-| `up` / `down` | hysteria2 | 带宽（Mbps） |
-| `mport` / `ports` | hysteria2 | 端口跳跃，如 `443,8443` 或 `443:8443` |
-| `congestion_control` / `udp_relay_mode` | tuic | 如 `bbr` / `native` |
-| `allowInsecure` / `insecure` / `skip-cert-verify` | 全部 TLS 类 | 跳过证书校验 |
-| `type` / `path` / `host` / `serviceName` | vmess / vless / trojan | ws / grpc / h2 传输 |
-
-`tuic://uuid:password@host:port?...` 与 `hysteria2://password@host:port?...` 都支持。
-
-### 分流逻辑
-1. 用户自定义「强制代理 / 强制直连」优先；
-2. 国内域名后缀（`assets/geosite_cn.txt`，含 `.cn` 与 300+ 常见站）→ 直连；
-3. 国内 IPv4 段（`assets/geoip_cn.txt`）→ 直连；
-4. 私有地址（192.168/10.x 等）→ 直连；
-5. 其余 → 走节点。
-
-WebView 流量通过 `ProxyController` 指到 `127.0.0.1`，本地分流器/内核按 host 决策，所以「国内直连、境外走节点」是按域名/IP 真分流，不是全局开关。
-
-### 内核是怎么塞进 App 的
-Android 10+ 禁止 App 从私有目录 `exec` 二进制。做法：
-- 内核以 `libsingbox.so` 的形式放进 `jniLibs/arm64-v8a/`，安装时被系统解压到 `nativeLibraryDir`（可执行、不受 W^X 限制）；
-- `AndroidManifest` 开 `android:extractNativeLibs="true"`，`build.gradle` 开 `jniLibs.useLegacyPackaging = true`；
-- `ProxyCore` 优先用 `nativeLibraryDir/libsingbox.so`，启动参数 `run -c config.json -D <私有目录>`，并轮询 2081 端口确认就绪。
-
-### 配置生成的三个坑（都已踩过并修掉）
-1. **DNS 不能 `detour: direct`**：1.14 会报 `detour to an empty direct outbound makes no sense`。改为 `route.rules` 里加 `{"protocol":"dns","outbound":"direct"}`，DNS 才真正直连，节点域名解析不再回环。
-2. **DNS 端口不能写在 server 里**：`"server":"127.0.0.1:5353"` 会被当成域名，必须 `server` + `server_port`。
-3. **tcp 节点不能带 `transport`**：给 `net=tcp` 的 vmess 硬塞 `{"type":"http"}` 会让服务端直接判 `bad request`，所有 tcp 节点全废。
-
----
-
-## 二、浏览器本体
-
-- WebView 全功能封装：多标签、`target=_blank` 自动开新页、文件上传、网页权限询问、全屏视频、系统下载器；地址栏自动识别网址/搜索词。
-- 菜单是**一屏底部面板**（8 个格子），不再一层套一层；长按「全部功能」可在精简/完整之间切换。
-- 设置默认只显示 5 组常用项（搜索 / 外观 / 代理 / 隐私 / 高级），要点「显示全部设置」才展开栏高、圆角、UA、规则这些细节。
-- 首页只有：logo、搜索框、四个入口（书签/历史/代理/设置）。
-- 后退/前进不可用时自动置灰；底栏与页面之间有分隔线。
-- 地址栏左侧有状态标识：`⌂` 首页 / `🔒` HTTPS / `⚠` HTTP 明文。点它打开**站点信息**：这个站走直连还是代理、用哪个引擎、UA 模式、广告规则状态、内核版本，还能一键复制域名、切 UA、加白名单。
-- 夜间模式、阅读模式、桌面版 UA、页内查找、缩放、网页截图、书签/历史。
-
-### 搜索引擎（内置 50 个，可无限加）
-国际：Google（含港/日）、Bing 国际、Yahoo、Yahoo! JAPAN、Yandex、DuckDuckGo、Ecosia、Startpage、Brave、Qwant、Mojeek、Marginalia、Yep、Presearch、SearXNG（两个实例）、Naver、Daum、Seznam、goo、Wikipedia。
-国内：百度（桌面/移动）、搜狗、360、神马、夸克、头条搜索、必应国内。
-垂直：知乎、微博、B 站、豆瓣、淘宝、京东、优酷、爱奇艺、喜马拉雅、有道翻译、知网、百度学术、Google 学术、GitHub、Stack Overflow、MDN、npm、PyPI、arXiv。
-默认百度（国内开箱可用），长按地址栏切换，也可自定义模板。
-
-### 广告拦截
-- 约 **78,000 条**域名规则（自建精选 + Peter Lowe + StevenBlack），本地匹配子域名，不联网、不上报。
-- 7.8 万条解析量较大，改成**后台线程加载**，加载完成前放行请求，不卡启动。
-- 用户规则：`files/rules/hosts.txt`；白名单在设置里。
-
-### 自定义（任何按键、任何手势）
-- 57 个可绑定动作，编辑器里可上移下移、改点按/长按动作、改字符、改宽度、显隐、删除、新增。
-- 手势：边缘滑动、工具栏长按、地址栏长按、长按网页链接 —— 都能改成任意动作。
-- 主题：跟随系统/浅色/深色/纯黑，强调色任意十六进制，栏高、圆角、显隐可调。
-
-### 订阅与节点
-- 粘贴机场订阅链接即解析（自动 base64）：`ss / vmess / vless / trojan / hysteria2 / socks / http`。
-- 手动粘贴单条节点；节点可单选、可刷新、可删除。
-- **新增：一键测速**——对所有节点做 TCP 握手测延迟，连不上的直接标「连不上」。
-- 分流模式：规则 / 全局 / 直连；日志区能看到每条请求走了直连还是节点。
-
----
-
-## 三、播放器
-
-- 注入嗅探脚本（hook `fetch` / `XHR` / `performance` / `<video>` / MutationObserver），抓 `m3u8 / mp4 / flv / mkv / mpd / ts`。
-- 内置播放器 = WebView + hls.js（本地打包，不联网拉 CDN）+ 原生 `<video>`。
-- 播放请求自动带当前页的 **Referer / UA / Cookie**，透传 `Range` —— 绝大多数「网页能看、复制链接打不开」的防盗链站点直接能播。
-- 功能：倍速、**长按 2 倍速**、双击左右各跳 10 秒、**画中画**、**投屏/外部播放器**、**记忆播放进度**、全屏。
-- DRM（Widevine）加密流不在范围内。
-
----
-
-## 四、自测（不用装手机就能跑）
-
-```bash
-./tools/selftest/run.sh       # 分流代理 16 项
-./tools/parsertest/run.sh     # 订阅解析 18 项（含 reality / hysteria2 / tuic）
-SING_BOX_BIN=/path/to/sing-box ./tools/kernel-test/run.sh   # 内核 12 项
-```
-
-- **selftest**：起真实 HTTP 服务器 + SOCKS5 服务器 + HTTP 代理服务器，验证规则判断、直连转发、CONNECT 隧道、SOCKS5 上游、HTTP 上游（含认证头）、CONNECT 走上游隧道。
-- **parsertest**：`ss / ss(整体 base64) / trojan / vless / socks` 字段解析，脏数据不崩。
-- **kernel-test**：先跑「订阅文本 → SubscriptionParser → CoreConfig → sing-box check」整条链（6 种节点）；再校验三种分流模式 + 每种节点的配置；最后起服务端/客户端跑真实流量：**vmess / trojan+TLS / shadowsocks / hysteria2(QUIC) / tuic(QUIC)**，并校验「流量确实穿过了节点」。
-  - 需要 sing-box 1.14+ 的 linux/arm64 或 amd64 二进制，官方发布包里带。
-
-最近一次结果：**16 / 18 / 12 全绿**。测出来并修掉的问题：tcp 节点多写 `transport`（vmess 全废）、DNS detour 空 direct（启动失败）、DNS 端口写法、代理分支重复写请求头、ss 节点被误标 TLS、测试脚本残留进程导致端口串台。
-
----
-
-## 五、目录
+## 目录
 
 ```
 app/src/main/java/com/vane/browser/
-├── MainActivity.java          主界面：栏、标签、菜单、手势、全流程调度
-├── SettingsActivity.java      设置
-├── UiEditorActivity.java      按键与手势编辑器
-├── SubsActivity.java          订阅、节点、测速、分流、日志
-├── PlayerActivity.java        播放器（Referer/UA/Cookie 取流、PiP、投屏）
-├── core/  BrowserTab · SearchEngines · Actions · AdBlocker · VideoSniffer · JsBridge · Downloads
-├── proxy/ ProxyManager · RuleEngine · SplitProxyServer · SubscriptionParser
-│          CoreConfig · ProxyCore · WebViewProxyBridge · AuroraVpnService · TunBridge
-├── settings/ Prefs · UiConfig
-└── ui/ Theme · Widgets
-
-app/src/main/assets/  home.html · player.html · hls.min.js · hosts.txt · geosite_cn.txt · geoip_cn.txt
-app/src/main/jniLibs/arm64-v8a/libsingbox.so     ← 内核本体（82 MB，压缩进 APK）
-tools/                selftest · parsertest · kernel-test
-docs/                 ARCHITECTURE.md · EXTENDING.md
+├── MainActivity.java        浏览器主体：标签、菜单、主页、下载页、同步、备份
+├── SettingsActivity.java    设置（精简 / 全部两套）
+├── VaultActivity.java       隐私空间
+├── PlayerActivity.java      内置播放器
+├── core/                    下载器、嗅探、拦截、用户脚本、仓库加密、同步
+├── proxy/                   代理：订阅解析、规则引擎、分流、TUN
+├── settings/                Prefs、UiConfig
+└── ui/                      Theme、Widgets、Sheet、图标
+app/src/main/assets/         主页、播放器页、广告规则、搜索引擎图标
+docs/                        架构、扩展、品牌、测试记录
+tools/                       本机测试用的小服务与素材
 ```
 
-## 六、构建
+更多： [架构说明](docs/ARCHITECTURE.md) · [扩展点](docs/EXTENDING.md) · [品牌素材](docs/BRANDING.md) · [更新记录](CHANGELOG.md)
 
-```bash
-./build.sh debug
-```
-环境：JDK 17、Gradle 8.7、Android SDK 34。当前机器 `build-tools` 的 `aapt2` 是 x86_64，跑不起来，所以用 Debian 的 arm64 版：
-```
-~/.gradle/gradle.properties
-android.aapt2FromMavenOverride=/usr/lib/android-sdk/build-tools/debian/aapt2
-```
-换到普通电脑编译时删掉这一行。内核只放了 `arm64-v8a`；要支持 32 位机型，把对应 ABI 的 sing-box 也放进 `jniLibs/armeabi-v7a/libsingbox.so` 即可。
+## 许可
 
-## 七、已知边界
-- 内核只有 `arm64-v8a` 和 `armeabi-v7a` 两版（对应两个 APK）；其他 ABI 上 `ss/vmess/trojan` 会明确提示「未内置内核」，`http/socks5` 照常可用。
-- REALITY 只做到「参数正确透传 + 配置通过内核校验」；要真连通还取决于服务端配置与目标站点，属于机场侧的事。
-- DRM 加密流不可播。
-- WebView 代理依赖 `PROXY_OVERRIDE`（System WebView 76+）。
-- 重依赖 JS 的站点是 WebView 能力问题，非本项目可解。
+未定。要拿去改、拿去发之前先开个 issue 说一声。
