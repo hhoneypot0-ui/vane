@@ -4,7 +4,7 @@
 | --- | --- | --- |
 | Android arm64-v8a | 已发布 | `vane-1.86.3-arm64.apk`（31.9 MB） |
 | Android armeabi-v7a（32 位） | 已发布 | `vane-1.86.3-armv7.apk`（32.5 MB） |
-| Windows / Linux | 原型 | `desktop/`（Electron 外壳 + 同一份规则库） |
+| Windows / Linux | 可用（轻量版） | `desktop/`：多标签 + 地址栏 + 本地拦截 + 代理设置；`.github/workflows/desktop.yml` 出 exe |
 | iOS | 浏览器可跑 + 拦截规则已生成；代理需付费账号 | `ios/`（Swift + WKWebView + WKContentRuleList + NetworkExtension 骨架） |
 
 ## 为什么不是「同一份代码编四次」
@@ -23,7 +23,9 @@ Android 端几乎所有能力都长在三个系统件上，换平台得各自重
 ## 现状说明
 
 - **32 位（armv7）**：`app-armeabi-v7a-debug.apk` 由同一次构建产出，代理核心有对应 ABI 的二进制，已随 release 发布。
-- **Windows / Linux**：`desktop/` 是能跑的最小原型（窗口 + 本地规则拦截），但地址栏、标签、代理、隐私空间都还没做。
+- **Windows / Linux**：`desktop/` 已经能日常用——多标签、地址栏、前进后退、
+  7.8 万条规则的本地拦截、单一代理地址（socks5/http）设置；缺订阅分流、隐私空间、脚本、同步。
+  Windows 包用 GitHub Actions 的 windows-latest 出，不依赖本机。
 - **iOS**：`ios/` 里浏览器部分能在 Xcode 直接跑——WKWebView、地址栏、主页，
   外加 `RulesLoader` 把 `hosts.txt` 生成的 **6 个分片、78,307 条**规则编译成 `WKContentRuleList`。
   代理必须走 NetworkExtension（`VaneProxy/` 骨架 + entitlement 已备），但需要付费开发者账号；
