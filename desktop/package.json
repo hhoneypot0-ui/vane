@@ -1,0 +1,12 @@
+{
+  "name": "vane-desktop",
+  "version": "1.86.3",
+  "description": "Vane desktop prototype (Electron): 同一个主页、同一份广告规则",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^31.0.0"
+  }
+}
