@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>主页</title>
+<style>
+  :root{--bg:#fff;--fg:#000;--sub:#5f6368;--field:#f1f3f4;--accent:#5B8CFF;--line:#e6e8ec}
+  @media (prefers-color-scheme:dark){
+    :root{--bg:#101114;--fg:#e8eaed;--sub:#9aa0a6;--field:#23252a;--accent:#8ab4ff;--line:#2a2d33}
+  }
+  /* 深色时统一走这套（由原生 setDark 推过来，避免 WebView 的 prefers-color-scheme 不跟主题） */
+  html[data-dark="1"]{--bg:#101114;--fg:#e8eaed;--sub:#9aa0a6;--field:#23252a;--accent:#8ab4ff;--line:#2a2d33}
+  html[data-dark="1"] body{background:var(--bg);color:var(--fg)}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);
+    font:16px/1.5 system-ui,-apple-system,"PingFang SC","Hiragino Sans GB",sans-serif}
+  #box_container{width:100%;max-width:600px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px 10px}
+  #box_container .box{display:flex;flex-direction:column;align-items:center;gap:7px;text-decoration:none;
+    color:var(--fg);overflow:hidden}
+  #box_container .box:active{opacity:.6}
+  #box_container .icon{width:46px;height:46px;border-radius:14px;background:var(--field);
+    display:flex;align-items:center;justify-content:center;overflow:hidden;font-size:18px}
+  #box_container .icon img{width:26px;height:26px;border-radius:6px}
+  #box_container .title{font-size:11px;max-width:100%;white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;color:var(--sub);text-align:center}
+  #cards a{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px;
+    border-radius:16px;background:var(--field);text-decoration:none;color:var(--fg);font-size:12px;
+    overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  #cards a:active{opacity:.7}
+  #cards .dot{width:26px;height:26px;border-radius:50%;background:rgba(128,128,128,.22);
+    display:flex;align-items:center;justify-content:center;font-size:12px}
+  .wrap{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:28px;padding:0 20px 12vh}
+
+  /* 大胶囊：56 高 / 28 圆角，Chrome 首页同款 */
+  form{width:100%;max-width:560px;display:flex;align-items:center;height:52px;
+    background:var(--field);border-radius:26px;padding:0 5px 0 5px;
+    border:1px solid transparent;transition:border-color .18s,box-shadow .18s}
+  /* 焦点只给一圈很淡的强调色，别用生硬的灰边 */
+  form:focus-within{border-color:rgba(138,180,255,.55);box-shadow:0 0 0 3px rgba(138,180,255,.14)}
+  html[data-dark="1"] form{background:#1c1e23}
+
+  /* 左边的引擎：logo + 名字，点一下弹全部引擎 */
+  #engBtn{display:flex;align-items:center;justify-content:center;width:42px;height:42px;
+    border-radius:21px;text-decoration:none;flex:none}
+  #engBtn:active{background:rgba(128,128,128,.16)}
+  #engIcon{width:22px;height:22px;border-radius:50%}
+  #engIcon.hide{display:none}
+  #engGlyph.hide{display:none}
+  #engGlyph{width:22px;height:22px;line-height:22px;text-align:center;font-size:12px;
+    color:var(--fg);background:rgba(128,128,128,.18);border-radius:50%}
+
+  input{flex:1;min-width:0;border:0;background:transparent;color:var(--fg);font-size:16px;
+    padding:0 4px;outline:none;height:100%}
+  input::placeholder{color:var(--sub)}
+
+  button{border:0;background:transparent;color:var(--sub);width:44px;height:44px;
+    border-radius:22px;display:flex;align-items:center;justify-content:center;padding:0;flex:none}
+  button svg{width:20px;height:20px;fill:currentColor}
+  button:active{background:rgba(128,128,128,.16)}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <form onsubmit="return go(event)">
+    <a id="engBtn" href="#" onclick="pick();return false">
+      <img id="engIcon" class="hide" alt="">
+      <span id="engGlyph">百</span>
+    </a>
+    <input id="q" type="search" placeholder="搜索或输入网址" autocomplete="off" enterkeyhint="go">
+    <button type="submit" onclick="return submitOrPick(event)" aria-label="搜索">
+      <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l4.25 4.24 1.49-1.49L15.5 14zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg>
+    </button>
+  </form>
+  <div id="box_container"></div>
+</div>
+<script>
+  var engEl = document.getElementById('engBtn');
+  var iconEl = document.getElementById('engIcon');
+  var glyphEl = document.getElementById('engGlyph');
+  var qEl = document.getElementById('q');
+
+  /** 原生调用：把当前引擎的名字/图标/占位文案同步到搜索框 */
+  window.setDark = function(on){
+    try{ document.documentElement.setAttribute('data-dark', on ? '1' : '0'); }catch(e){}
+  };
+  window.setCards = function(list){
+    var box = document.getElementById('box_container');
+    if(!box) return;
+    box.innerHTML = '';
+    (list||[]).slice(0,12).forEach(function(c){
+      if(!c || !c.url) return;
+      var a = document.createElement('a');
+      a.className = 'box';
+      a.href = c.url;
+      a.onclick = function(e){ e.preventDefault(); location.href = 'vane://open?url=' + encodeURIComponent(c.url); return false; };
+
+      var ic = document.createElement('div'); ic.className = 'icon';
+      var host = '';
+      try { host = new URL(c.url).hostname; } catch(e) { host = c.url; }
+      var letter = document.createElement('span');
+      letter.textContent = (c.title||host||'?').substring(0,1);
+      var img = document.createElement('img');
+      img.onload = function(){ ic.innerHTML = ''; ic.appendChild(img); };
+      img.onerror = function(){ if(!ic.firstChild) ic.appendChild(letter); };
+      img.src = 'https://' + host + '/favicon.ico';
+      ic.appendChild(letter);
+
+      var t = document.createElement('p'); t.className='title'; t.textContent = c.title || host;
+      a.appendChild(ic); a.appendChild(t);
+      box.appendChild(a);
+    });
+  };
+
+  (function(){
+    var startY = 0, dy = 0, dragging = false, content = document.getElementById('contentAll');
+    document.addEventListener('touchstart', function(e){
+      if (window.scrollY > 0) { dragging = false; return; }
+      dragging = true; startY = e.touches[0].screenY; dy = 0;
+    }, {passive:true});
+    document.addEventListener('touchmove', function(e){
+      if (!dragging) return;
+      dy = e.touches[0].screenY - startY;
+      if (dy > 0) {
+        var v = Math.min(98, dy);
+        document.body.style.transform = 'translateY(' + v + 'px)';
+        document.body.style.opacity = Math.max(.1, 1 - v / 98);
+      }
+    }, {passive:true});
+    document.addEventListener('touchend', function(){
+      if (!dragging) return;
+      dragging = false;
+      document.body.style.transform = 'translateY(0)';
+      document.body.style.opacity = '1';
+      if (dy > 88) location.href = 'vane://action/focusAddress';
+      dy = 0;
+    }, {passive:true});
+  })();
+
+  window.setEngine = function (name, iconUrl) {
+    if (name) {
+      qEl.placeholder = '在 ' + name + ' 中搜索或输入网址';
+      engEl.setAttribute('title', name);
+      glyphEl.textContent = name.substring(0, 1);
+    }
+    if (iconUrl) {
+      iconEl.onerror = function () { iconEl.classList.add('hide'); glyphEl.classList.remove('hide'); };
+      iconEl.onload = function () { iconEl.classList.remove('hide'); glyphEl.classList.add('hide'); };
+      iconEl.src = iconUrl;
+    } else {
+      iconEl.classList.add('hide');
+      glyphEl.classList.remove('hide');
+    }
+  };
+
+  function pick() {
+    if (window.VaneBridge && VaneBridge.pickEngine) VaneBridge.pickEngine();
+  }
+  function act(id) {
+    if (window.VaneBridge && VaneBridge.action) VaneBridge.action(id);
+    else location.href = 'vane://action/' + id;
+  }
+  function go(e) {
+    e.preventDefault();
+    var q = qEl.value.trim();
+    if (!q) { pick(); return false; }
+    if (window.VaneBridge && VaneBridge.search) VaneBridge.search(q, '');
+    else location.href = 'vane://search?q=' + encodeURIComponent(q);
+    return false;
+  }
+  function submitOrPick(e) {
+    if (!qEl.value.trim()) { e.preventDefault(); pick(); return false; }
+    return true;
+  }
+</script>
+</body>
+</html>

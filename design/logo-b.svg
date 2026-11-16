@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#0E1013"/>
+  <!-- 字母 V 化作风的轨迹 -->
+  <path d="M120 150 L256 392 L392 150" fill="none" stroke="#F5F7FA" stroke-width="46"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M96 236 H188" stroke="#5B8CFF" stroke-width="20" stroke-linecap="round"/>
+  <path d="M324 236 H416" stroke="#5B8CFF" stroke-width="20" stroke-linecap="round"/>
+</svg>

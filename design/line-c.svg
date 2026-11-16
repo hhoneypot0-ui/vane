@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#0E1013"/>
+  <!-- 风的轨迹：三条弧线，最上一条带箭头 -->
+  <path d="M126 190 H330 a46 46 0 1 0 -46 -46" fill="none" stroke="#F5F7FA" stroke-width="22"
+        stroke-linecap="round"/>
+  <path d="M126 268 H286 a46 46 0 1 1 -46 46" fill="none" stroke="#F5F7FA" stroke-width="22"
+        stroke-linecap="round"/>
+  <path d="M150 344 H226" fill="none" stroke="#5B8CFF" stroke-width="22" stroke-linecap="round"/>
+</svg>

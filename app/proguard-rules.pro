@@ -1,0 +1,2 @@
+-keep class com.vane.browser.** { *; }
+-keepclassmembers class * { @android.webkit.JavascriptInterface <methods>; }

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 窗口框：代表浏览器本体（多标签/页面） -->
+  <rect x="86" y="86" width="340" height="340" rx="84" fill="none"
+        stroke="#F5F7FA" stroke-width="30"/>
+  <!-- 内部 V 形箭头：代表方向/穿行（Vane = 风向标） -->
+  <path d="M176 196 L256 336 L336 196" fill="none" stroke="#F5F7FA"
+        stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- 一个短蓝点，暗示“正在前进” -->
+  <circle cx="256" cy="376" r="17" fill="#2FD2C0"/>
+</svg>

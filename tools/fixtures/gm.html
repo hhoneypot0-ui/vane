@@ -1,0 +1,14 @@
+<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GM API Probe</title>
+<body style="font:15px system-ui;padding:20px">
+<h2>GM API 探针</h2><pre id="r">running…</pre>
+<script>
+var out=[];
+out.push('GM_getValue type: '+typeof window.GM_getValue);
+out.push('GM_setValue: '+typeof window.GM_setValue);
+out.push('GM_addStyle: '+typeof window.GM_addStyle);
+window.__gmReady=function(){document.getElementById('r').textContent=out.join('\n');};
+setTimeout(function(){ if(window.__gmReady) window.__gmReady();
+ var k=window.__gmVal||'none';
+ document.getElementById('r').textContent=out.join('\n')+'\n字值: '+k; },2000);
+</script>

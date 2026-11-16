@@ -1,0 +1,16 @@
+# Vane URL 级广告规则（严格模式才生效）
+# 原则：只列「一眼就是广告」的路径，避免误伤站点自身接口
+*/adserver/*
+*/adservice/*
+*/advertise/*
+*/adsbygoogle*
+*/pagead/*
+*/adframe*
+*/nativead/*
+*/popunder*
+*/banner_ad*
+*/ad_banner*
+*/ads/banner*
+*/api/ads/*
+*.doubleclick.net/*
+*/adx/*

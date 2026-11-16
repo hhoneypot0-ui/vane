@@ -1,0 +1,23 @@
+# 构建产物
+app/build/
+build/
+.gradle/
+local.properties
+*.iml
+.idea/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# 测试素材（体积大，不进仓库）
+tools/fixtures/*.apk
+tools/fixtures/*.bin
+tools/fixtures/*.mp4
+
+# 代理核心二进制（79MB + 74MB）：不放仓库，见 README「如何自备」
+app/src/main/jniLibs/*/libsingbox.so
+app/src/main/jniLibs/*/libhev-socks5-tunnel.so
+
+# 系统垃圾
+.DS_Store
+Thumbs.db
