@@ -9,6 +9,9 @@ targets:
     deploymentTarget: "15.0"
     sources:
       - path: Vane
+      - path: Vane/Rules
+        type: folder
+        name: Rules
       - path: ../app/src/main/assets
         type: folder
         name: assets
@@ -16,3 +19,15 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.vane.browser
         INFOPLIST_FILE: Vane/Info.plist
+  # 代理扩展：需要付费开发者账号，且在 Apple 后台为该 App ID 勾选 Network Extensions
+  VaneProxy:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: VaneProxy
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.vane.browser.proxy
+        CODE_SIGN_ENTITLEMENTS: VaneProxy/VaneProxy.entitlements
+        INFOPLIST_FILE: VaneProxy/Info.plist
