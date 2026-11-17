@@ -32,6 +32,8 @@ public class BrowserTab {
     /** 上一次整页加载耗时（毫秒）。 */
     public volatile long lastLoadMs = -1;
     private long loadStartAt = 0;
+    /** 上次加载：首屏可见、加载完成（毫秒，-1 表示没测到） */
+    public long tCommit = 0, tFinish = 0;
     public String faviconGlyph = "◍";
     public int progress = 0;
     public boolean desktop = false;
@@ -429,6 +431,7 @@ public class BrowserTab {
             try {
                 if (u != null && (u.startsWith("http://") || u.startsWith("https://"))) internalLabel = null;
                 loadStartAt = System.currentTimeMillis();
+                tCommit = 0; tFinish = 0;
                 boolean homeLoad = u != null && (u.startsWith("about:") || u.startsWith("data:"))
                         && isHome();
                 if (!homeLoad) url = u;
@@ -438,8 +441,14 @@ public class BrowserTab {
         }
 
         @Override
+        public void onPageCommitVisible(WebView v, String u) {
+            if (loadStartAt > 0 && tCommit == 0) tCommit = System.currentTimeMillis() - loadStartAt;
+        }
+
+        @Override
         public void onPageFinished(WebView v, String u) {
             try {
+            if (loadStartAt > 0) tFinish = System.currentTimeMillis() - loadStartAt;
             url = u;
             title = v.getTitle() == null ? u : v.getTitle();
             try { if (act.blocker != null) act.blocker.resetPageCount(); } catch (Throwable ignored) {}
