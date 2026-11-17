@@ -5,6 +5,9 @@ on:
   push:
     tags: ['v*']
 
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -38,3 +41,15 @@ jobs:
             desktop/dist/*.AppImage
             desktop/dist/*.yml
           if-no-files-found: warn
+
+      # 直接挂到 Release：tag 触发挂到对应 tag，手动触发挂到 desktop-latest
+      - name: 发布到 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'desktop-latest' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'Vane 桌面版（最新构建）' }}
+          make_latest: false
+          fail_on_unmatched_files: false
+          files: |
+            desktop/dist/*.exe
+            desktop/dist/*.AppImage
