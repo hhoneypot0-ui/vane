@@ -88,8 +88,13 @@ function layout() {
 
 function pushState() {
   if (!toolbar) return;
+  try { pushStateInner(); } catch (e) { logError('pushState', e); }
+}
+
+function pushStateInner() {
   const t = tabs[active];
   toolbar.webContents.send('vane:state', {
+    version: app.getVersion(),
     url: t ? t.url : '',
     title: t ? t.title : 'Vane',
     canBack: canGo(t, 'back'),
@@ -99,20 +104,37 @@ function pushState() {
   });
 }
 
-function nav(wc) {
-  return (wc && wc.navigationHistory) ? wc.navigationHistory : null;
+// Electron 不同版本这块 API 变过三次：navigationHistory 有时没有、有时方法名不同，
+// 所以一律先看 typeof，再退回 webContents 上的老方法，最后返回 false。
+function wcOf(t) {
+  try { return t && t.view && t.view.webContents ? t.view.webContents : null; } catch { return null; }
 }
 function canGo(t, dir) {
-  if (!t) return false;
-  const h = nav(t.view.webContents);
-  if (h) return dir === 'back' ? h.canGoBack() : h.canGoForward();
-  return dir === 'back' ? t.view.webContents.canGoBack() : t.view.webContents.canGoForward();
+  const wc = wcOf(t);
+  if (!wc) return false;
+  const h = wc.navigationHistory;
+  try {
+    if (h) {
+      const f = dir === 'back' ? h.canGoBack : h.canGoForward;
+      if (typeof f === 'function') return !!f.call(h);
+    }
+    const legacy = dir === 'back' ? wc.canGoBack : wc.canGoForward;
+    if (typeof legacy === 'function') return !!legacy.call(wc);
+  } catch (e) { logError('canGo/' + dir, e); }
+  return false;
 }
 function go(t, dir) {
-  if (!t) return;
-  const h = nav(t.view.webContents);
-  if (h) { dir === 'back' ? h.goBack() : h.goForward(); return; }
-  dir === 'back' ? t.view.webContents.goBack() : t.view.webContents.goForward();
+  const wc = wcOf(t);
+  if (!wc) return;
+  const h = wc.navigationHistory;
+  try {
+    if (h) {
+      const f = dir === 'back' ? h.goBack : h.goForward;
+      if (typeof f === 'function') { f.call(h); return; }
+    }
+    const legacy = dir === 'back' ? wc.goBack : wc.goForward;
+    if (typeof legacy === 'function') { legacy.call(wc); return; }
+  } catch (e) { logError('go/' + dir, e); }
 }
 
 function normalize(input) {
