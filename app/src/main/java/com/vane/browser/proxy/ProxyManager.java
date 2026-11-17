@@ -145,8 +145,9 @@ public class ProxyManager {
     /** 取订阅内容：先按 URL 猜 UA（和最早版本一致），失败再少量轮换，避免把机场 WAF 惹毛。 */
     public static String fetch(String url) throws Exception {
         boolean looksClash = url.contains("clash");
-        String first = looksClash ? "clash-verge/v1.6.0" : "Vane/1.0 (Android)";
-        String other = looksClash ? "Vane/1.0 (Android)" : "clash-verge/v1.6.0";
+        // 机场普遍按 UA 放行：非客户端 UA 会直接 400/403。默认就用常见客户端 UA。
+        String first = "clash-verge/v2.0.0";
+        String other = looksClash ? "sing-box/1.8.0" : "ClashforWindows/0.20.39";
 
         // 上次成功过的 UA 优先（记在 prefs 里）
         String remembered = com.vane.browser.settings.Prefs.get("sub_ua", "");
@@ -183,9 +184,32 @@ public class ProxyManager {
     }
 
     /** 诊断用：只发一次请求，把状态和内容原样返回。 */
+    /**
+     * 拉订阅。很多机场按 User-Agent 决定给不给订阅：非客户端 UA 直接 400/403。
+     * 所以先按用户设置/默认客户端 UA 试，失败再换两个常见 UA 重试，最后才把错误抛出去。
+     */
     public static String fetchRaw(String url) throws Exception {
-        boolean clash = url.contains("clash");
-        return fetchWith(url, clash ? "clash-verge/v1.6.0" : "Vane/1.0 (Android)");
+        String custom = com.vane.browser.settings.Prefs.get("sub_ua", "");
+        String[] uas;
+        if (!custom.isEmpty()) {
+            uas = new String[]{custom};
+        } else if (url.contains("clash")) {
+            uas = new String[]{"clash-verge/v2.0.0", "ClashforWindows/0.20.39", "sing-box/1.8.0"};
+        } else {
+            uas = new String[]{"clash-verge/v2.0.0", "sing-box/1.8.0", "v2rayN/6.31"};
+        }
+        Exception last = null;
+        for (String ua : uas) {
+            try {
+                return fetchWith(url, ua);
+            } catch (Exception e) {
+                last = e;
+                String msg = e.getMessage() == null ? "" : e.getMessage();
+                // 只有 4xx 值得换 UA 重试；网络错误直接抛
+                if (!msg.contains("400") && !msg.contains("403") && !msg.contains("404")) throw e;
+            }
+        }
+        throw last == null ? new Exception("订阅拉取失败") : last;
     }
 
     public java.util.List<Subscription> subscriptions() {
