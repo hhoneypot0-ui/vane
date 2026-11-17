@@ -104,14 +104,68 @@ function newTab(url) {
   wc.on('page-title-updated', (_e, title) => { tab.title = title; pushState(); });
   wc.on('did-navigate', (_e, u) => { tab.url = u; pushState(); });
   wc.on('did-navigate-in-page', (_e, u) => { tab.url = u; pushState(); });
-  wc.setWindowOpenHandler(({ url }) => { newTab(url); return { action: 'deny' }; });
+  wc.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('vane:')) { handleVaneUrl(wc, url); return { action: 'deny' }; }
+    newTab(url);
+    return { action: 'deny' };
+  });
+  wc.on('will-navigate', (e, url) => {
+    if (url.startsWith('vane:')) { e.preventDefault(); handleVaneUrl(wc, url); }
+  });
+  wc.on('will-frame-navigate', (e) => {
+    const url = e.url || '';
+    if (url.startsWith('vane:')) { e.preventDefault(); handleVaneUrl(wc, url); }
+  });
 
-  if (url === HOME || !url) wc.loadFile(path.join(ASSETS, 'home.html'));
+  if (url === HOME || !url) loadHome(wc);
   else wc.loadURL(normalize(url));
 
   layout();
   pushState();
   return tab;
+}
+
+/** 打开内置主页，并补上 Android 端由原生注入的那几个接口。 */
+function loadHome(wc) {
+  wc.loadFile(path.join(ASSETS, 'home.html')).then(() => {
+    wc.executeJavaScript(
+      "window.setDark && window.setDark(true);" +
+      "window.setEngine && window.setEngine('Bing', '');" +
+      "window.setCards && window.setCards([]);", true).catch(() => {});
+  }).catch(() => {});
+}
+
+/** 主页上的 vane:// 链接（搜索、卡片、动作）在桌面端要自己接。 */
+function handleVaneUrl(wc, raw) {
+  let u;
+  try { u = new URL(raw); } catch { return false; }
+  if (u.protocol !== 'vane:') return false;
+  const host = u.hostname || u.pathname.replace(/^\/+/, '');
+  const q = (k) => u.searchParams.get(k) || '';
+  if (host === 'open') {
+    const target = q('url');
+    if (target) wc.loadURL(target);
+    return true;
+  }
+  if (host === 'search') {
+    wc.loadURL('https://www.bing.com/search?q=' + encodeURIComponent(q('q')));
+    return true;
+  }
+  if (host === 'action') {
+    const id = (u.pathname || '').replace(/^\/+/, '') || q('id');
+    switch (id) {
+      case 'focusAddress': toolbar.webContents.focus(); toolbar.webContents.executeJavaScript("document.getElementById('addr').focus()"); break;
+      case 'home': loadHome(wc); break;
+      case 'reload': wc.reload(); break;
+      case 'back': if (wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack(); break;
+      case 'forward': if (wc.navigationHistory.canGoForward()) wc.navigationHistory.goForward(); break;
+      case 'newTab': newTab(HOME); break;
+      case 'closeTab': closeTab(); break;
+      default: console.log('[vane] 桌面端暂未实现动作：', id);
+    }
+    return true;
+  }
+  return true;   // 其它 vane:// 一律吞掉，避免跳成错误页
 }
 
 function closeTab() {
@@ -148,13 +202,13 @@ function createWindow() {
 ipcMain.on('vane:navigate', (_e, url) => {
   const t = tabs[active]; if (!t) return;
   const target = normalize(url);
-  if (target === HOME) t.view.webContents.loadFile(path.join(ASSETS, 'home.html'));
+  if (target === HOME) loadHome(t.view.webContents);
   else t.view.webContents.loadURL(target);
 });
 ipcMain.on('vane:back', () => { const t = tabs[active]; if (t && t.view.webContents.navigationHistory.canGoBack()) t.view.webContents.navigationHistory.goBack(); });
 ipcMain.on('vane:forward', () => { const t = tabs[active]; if (t && t.view.webContents.navigationHistory.canGoForward()) t.view.webContents.navigationHistory.goForward(); });
 ipcMain.on('vane:reload', () => { const t = tabs[active]; if (t) t.view.webContents.reload(); });
-ipcMain.on('vane:home', () => { const t = tabs[active]; if (t) t.view.webContents.loadFile(path.join(ASSETS, 'home.html')); });
+ipcMain.on('vane:home', () => { const t = tabs[active]; if (t) loadHome(t.view.webContents); });
 ipcMain.on('vane:new-tab', () => newTab(HOME));
 ipcMain.on('vane:close-tab', closeTab);
 ipcMain.on('vane:set-active', (_e, i) => { if (i >= 0 && i < tabs.length) { active = i; layout(); pushState(); } });
