@@ -8,8 +8,8 @@ android {
         applicationId "com.vane.browser"
         minSdk 23
         targetSdk 34
-        versionCode 347
-        versionName "1.86.7"
+        versionCode 348
+        versionName "1.86.8"
         resConfigs "zh", "en"
     }
 
