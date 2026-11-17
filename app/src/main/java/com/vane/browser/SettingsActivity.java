@@ -236,6 +236,13 @@ public class SettingsActivity extends AppCompatActivity {
             build();
         }));
         add(Widgets.divider(this, ui));
+        add(Widgets.switchRow(this, ui, "网页强制深色",
+                "把白底网页也压成深色；会多一点渲染开销，觉得卡就关掉",
+                Prefs.getBool("dark_web", false), () -> {
+                    Prefs.putBool("dark_web", !Prefs.getBool("dark_web", false));
+                    build();
+                }));
+        add(Widgets.divider(this, ui));
         add(Widgets.row(this, ui, "默认浏览器",
                 isDefaultBrowser() ? "已设为默认浏览器" : "未设 · 点这里去系统里选择",
                 null, this::openDefaultBrowserSettings));
