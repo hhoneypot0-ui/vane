@@ -1274,6 +1274,13 @@ public class MainActivity extends AppCompatActivity {
             r.setPadding(0, Theme.dp(this, 8), 0, 0);
             box.addView(r);
         }
+        if (t.tFinish > 0) {
+            String timing = "上次加载：首屏 " + (t.tCommit > 0 ? t.tCommit : t.tFinish) + " ms"
+                    + " · 完成 " + t.tFinish + " ms";
+            TextView tt = Widgets.text(this, timing, 12, Theme.hint(this, ui));
+            tt.setPadding(0, Theme.dp(this, 6), 0, 0);
+            box.addView(tt);
+        }
 
         // 本页拦截了多少广告请求（换页归零，最直观地说明规则有没有用）
         if (!url.isEmpty() && blocker != null) {
