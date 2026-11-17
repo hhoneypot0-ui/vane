@@ -33,6 +33,15 @@ jobs:
         run: npm install
       - name: 打包
         run: ${{ matrix.script }}
+      # Windows 产物同步进主 Release（v1.86.3），方便一处下载全平台
+      - name: 同步到主 Release
+        if: matrix.artifact == 'vane-windows'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload v1.86.3 dist/Vane.Setup.*.exe dist/Vane.*.exe --clobber
+          echo "已同步到 v1.86.3"
+
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
