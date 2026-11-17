@@ -184,14 +184,15 @@ WebDAV 同步书签、历史、快捷入口与常用设置；自动同步只在�
 
 ## 平台
 
-| 平台 | 状态 | 产物 |
-| --- | --- | --- |
-| Android arm64-v8a | **已发布** | APK 31.9 MB · 装后约 90–100 MB |
-| Android armeabi-v7a（32 位） | **已发布** | APK 32.5 MB |
-| Windows / Linux | 原型 | `desktop/`：Electron 外壳 + 同一份规则库 |
-| iOS | 骨架 | `ios/`：Swift + WKWebView，XcodeGen 工程 |
+| 平台 | 状态 |
+| --- | --- |
+| Android arm64-v8a | **已发布** · APK 31.9 MB · 装后约 90–100 MB |
+| Android armeabi-v7a（32 位） | **已发布** · APK 32.5 MB |
+| Windows / Linux / iOS | **未实现** |
 
-桌面与 iOS 的移植映射、各系统能力怎么对接，写在 [docs/PLATFORMS.md](docs/PLATFORMS.md)。
+桌面端和 iOS 端做过一轮探索但没走通（Electron 壳在 Windows 上反复在主进程启动阶段崩，
+iOS 受 NetworkExtension 限制），相关代码已从仓库移除，留给下一个人从头做。
+各系统能力怎么对接，思路留在 [docs/PLATFORMS.md](docs/PLATFORMS.md)。
 
 ## 工程结构
 
@@ -225,6 +226,7 @@ docs/                      架构、扩展、品牌、逐版测试记录
 
 ## 路线图
 
+- 桌面端（Windows / Linux）与 iOS 端：未做，欢迎接手
 - 播放器字幕挂载（`.srt` / `.vtt`）
 - 隐私空间扩展到图片与文档
 - `ssr` 协议支持
