@@ -1,6 +1,6 @@
 // Vane 桌面版：多标签浏览器 + 本地广告拦截 + 代理设置。
 // 设计上尽量贴近 Android 端的取舍：一个程序干完，界面走深色，规则本地跑。
-const { app, BrowserWindow, WebContentsView, ipcMain, session, Menu, dialog } = require('electron');
+const { app, BrowserWindow, BrowserView, ipcMain, session, Menu, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -83,6 +83,7 @@ function layout() {
   toolbar.setBounds({ x: 0, y: 0, width, height: TOOLBAR_H });
   const t = tabs[active];
   if (t) t.view.setBounds({ x: 0, y: TOOLBAR_H, width, height: Math.max(0, height - TOOLBAR_H) });
+  win.setTopBrowserView(toolbar);
 }
 
 function pushState() {
@@ -123,10 +124,10 @@ function normalize(input) {
 }
 
 function newTab(url) {
-  const view = new WebContentsView({
+  const view = new BrowserView({
     webPreferences: { contextIsolation: true, nodeIntegration: false, partition: 'persist:vane' }
   });
-  win.contentView.addChildView(view);
+  win.addBrowserView(view);
   const wc = view.webContents;
   const tab = { view, title: '新标签页', url: url || HOME };
   tabs.push(tab);
@@ -206,8 +207,8 @@ function handleVaneUrl(wc, raw) {
 function closeTab() {
   if (tabs.length <= 1) return;
   const t = tabs[active];
-  win.contentView.removeChildView(t.view);
-  t.view.webContents.close();
+  win.removeBrowserView(t.view);
+  t.view.webContents.destroy();
   tabs.splice(active, 1);
   active = Math.max(0, active - 1);
   layout();
@@ -221,10 +222,10 @@ function createWindow() {
     backgroundColor: '#101114', title: 'Vane', show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true }
   });
-  toolbar = new WebContentsView({
+  toolbar = new BrowserView({
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true }
   });
-  win.contentView.addChildView(toolbar);
+  win.addBrowserView(toolbar);
   toolbar.webContents.loadFile(path.join(__dirname, 'toolbar.html'));
 
   newTab(HOME);
