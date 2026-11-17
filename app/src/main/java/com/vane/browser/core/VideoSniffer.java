@@ -41,24 +41,25 @@ public final class VideoSniffer {
      * 强制深色：直接写一套深色样式（Via 的「强制网页暗色」就是这个思路）。
      * 不反色图片，只把背景压深、文字提亮，所以不会变鬼片。
      */
+    /**
+     * 强制深色：只改「背景/文字/链接/表单」这些关键处，不再用 `*` 通配符。
+     * 之前的写法对每个元素都套 background-image:none + !important，
+     * 大页面上等于每次都做全量样式重算，滚动和首屏都明显变慢。
+     */
     public static final String DARK_CSS = "(function(){"
-            + "var css=':root{color-scheme:dark !important}"
-            + "html,body{background:#101114 !important;background-image:none !important;color:#E6E7EA !important}"
-            + "*{background-image:none !important}"
-            + "*:not(img):not(video):not(canvas):not(svg){background-color:transparent !important}"
-            + "*::before,*::after{background-color:transparent !important;background-image:none !important}"
-            + "body,body *{color:#E6E7EA !important;border-color:#2A2D34 !important}"
+            + "var css=':root{color-scheme:dark}"
+            + "html,body{background:#101114 !important;color:#E6E7EA !important}"
+            + "body div,body section,body article,body main,body header,body footer,body nav,body aside,"
+            + "body ul,body ol,body li,body table,body tr,body td,body th,body p,body span{"
+            + "background-color:transparent !important;color:#E6E7EA !important}"
             + "a,a *{color:#8AB4FF !important}"
             + "input,textarea,select,button{background-color:#1A1C21 !important;color:#E6E7EA !important;"
-            + "border:1px solid #2A2D34 !important}"
-            + "iframe{background:#101114 !important;color-scheme:dark !important}';"
+            + "border:1px solid #2A2D34 !important}';"
             + "function apply(doc){if(!doc||!doc.documentElement)return;"
             + "if(doc.getElementById('__vane_dark'))return;"
             + "var st=doc.createElement('style');st.id='__vane_dark';st.textContent=css;"
             + "(doc.head||doc.documentElement).appendChild(st);}"
             + "apply(document);"
-            + "try{var fs=document.querySelectorAll('iframe');"
-            + "for(var i=0;i<fs.length;i++){try{apply(fs[i].contentDocument);}catch(e){}}}catch(e){}"
             + "})();";
 
     public static final String DARK_OFF = "(function(){var s=document.getElementById('__vane_dark');if(s)s.parentNode.removeChild(s);})();";
