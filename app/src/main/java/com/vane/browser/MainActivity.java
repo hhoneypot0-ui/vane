@@ -940,6 +940,30 @@ public class MainActivity extends AppCompatActivity {
         if (t == null || isFinishing()) return;
         // 用一个内联错误页替换白屏，并给「重试 / 回主页」，避免地址栏显示新网址但内容是旧页面
         String failed = t.url == null ? "" : t.url;
+        String extra = "";
+        try {
+            String low = failed.toLowerCase(java.util.Locale.CHINA);
+            boolean foreign = low.contains("google.") || low.contains("youtube.") || low.contains("twitter.")
+                    || low.contains("x.com") || low.contains("facebook.") || low.contains("wikipedia.")
+                    || low.contains("github.") || low.contains("duckduckgo.");
+            String q = null;
+            int qi = low.indexOf("q=");
+            if (qi > 0) {
+                String tail = failed.substring(qi + 2);
+                int amp = tail.indexOf('&');
+                q = amp > 0 ? tail.substring(0, amp) : tail;
+            }
+            StringBuilder b = new StringBuilder();
+            if (foreign) {
+                b.append("<div class='tip'>这个站点通常要开代理才能打开</div>")
+                 .append("<a class='ghost' href='vane://action/proxyPanel'>去开代理</a>");
+            }
+            if (q != null && !q.isEmpty()) {
+                b.append("<a class='ghost' href='https://www.bing.com/search?q=")
+                 .append(htmlEscape(q)).append("'>用 Bing 搜同样的词</a>");
+            }
+            extra = b.toString();
+        } catch (Throwable ignored) {}
         String html = "<!doctype html><html><head><meta name=viewport "
                 + "content='width=device-width,initial-scale=1'><style>"
                 + "body{margin:0;background:" + (Theme.isDark(this, ui) ? "#101114" : "#fff")
@@ -949,10 +973,13 @@ public class MainActivity extends AppCompatActivity {
                 + "h3{font-size:17px;margin:0 0 10px}p{color:" + (Theme.isDark(this, ui) ? "#9AA0A6" : "#6B7280")
                 + ";font-size:13px;margin:0 0 18px;word-break:break-all}"
                 + "a{display:inline-block;padding:10px 18px;border-radius:12px;text-decoration:none;"
-                + "background:" + Theme.accent(ui) + ";color:#fff;font-size:14px}"
+                + "background:" + Theme.accent(ui) + ";color:#fff;font-size:14px;margin:4px}"
+                + "a.ghost{background:transparent;border:1px solid " + Theme.line(this, ui)
+                + ";color:" + (Theme.isDark(this, ui) ? "#EDEEF0" : "#111") + "}"
+                + ".tip{color:" + (Theme.isDark(this, ui) ? "#9AA0A6" : "#6B7280") + ";font-size:12px;margin:6px 0 2px}"
                 + "</style></head><body><div><h3>打不开这个页面</h3><p>" + htmlEscape(failed)
                 + "<br>" + htmlEscape(msg == null ? "" : msg) + "</p>"
-                + "<a href='" + htmlEscape(failed) + "'>重新加载</a></div></body></html>";
+                + "<a href='" + htmlEscape(failed) + "'>重新加载</a>" + extra + "</div></body></html>";
         t.web.loadDataWithBaseURL(null, html, "text/html", "utf-8", null);
         Widgets.toast(this, "加载失败：" + msg);
     }
@@ -6669,9 +6696,36 @@ public class MainActivity extends AppCompatActivity {
         holder[0] = com.vane.browser.ui.Sheet.show(this, ui, box, true);
     }
 
-    /** AI：用你自己的接口总结这页（OpenAI 兼容格式）。 */
+    /**
+     * AI：接口、密钥、模型都填你自己的，浏览器里直接用。
+     * 支持两类：OpenAI 兼容（/chat/completions，覆盖大多数服务商与本地模型）与 Anthropic 原生（/messages）。
+     */
     public void openAi() {
         final String endpoint = Prefs.get("ai_endpoint", "");
+        if (!endpoint.isEmpty()) {
+            Widgets.pick(this, ui, "AI · " + Prefs.get("ai_model", ""), java.util.Arrays.asList(
+                    "总结这一页", "就这一页提问…", "换接口 / 密钥"), k -> {
+                if (k == 2) {
+                    Prefs.put("ai_endpoint", "");
+                    openAi();
+                    return;
+                }
+                final BrowserTab tb = currentTab();
+                if (tb == null || tb.isHome()) {
+                    Widgets.toast(this, "先进一个网页再用 AI");
+                    return;
+                }
+                if (k == 0) {
+                    runAi(tb, "用简洁中文列出这一页的要点，最多 6 条。", "AI 摘要");
+                    return;
+                }
+                Widgets.input(this, ui, "问这一页", "", false, q -> {
+                    if (q == null || q.trim().isEmpty()) return;
+                    runAi(tb, q.trim(), "AI 回答");
+                });
+            });
+            return;
+        }
         if (endpoint.isEmpty()) {
             Widgets.input(this, ui, "AI 接口地址（如 https://api.openai.com/v1）", "", false, ep -> {
                 Prefs.put("ai_endpoint", ep.trim());
@@ -6685,14 +6739,13 @@ public class MainActivity extends AppCompatActivity {
             });
             return;
         }
-        BrowserTab t = currentTab();
-        if (t == null || t.isHome()) {
-            Widgets.toast(this, "先进一个网页再点 AI");
-            return;
-        }
-        Widgets.toast(this, "正在总结…");
+    }
+
+    /** 抓当前页正文，带着问题去问模型。 */
+    private void runAi(final BrowserTab t, final String question, final String title) {
+        Widgets.toast(this, "正在问模型…");
         t.web.evaluateJavascript(
-                "(function(){try{return (document.body&&document.body.innerText||'').slice(0,4000);}catch(e){return '';}})()",
+                "(function(){try{return (document.body&&document.body.innerText||'').slice(0,6000);}catch(e){return '';}})()",
                 value -> {
                     String text = value;
                     try {
@@ -6703,32 +6756,48 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
                     final String page = text;
-                    new Thread(() -> aiRequest(page), "ai-summary").start();
+                    new Thread(() -> aiRequest(page, question, title), "ai-call").start();
                 });
     }
 
-    private void aiRequest(String pageText) {
+    private void aiRequest(String pageText, String question, String title) {
         String endpoint = Prefs.get("ai_endpoint", "");
         String key = Prefs.get("ai_key", "");
         String model = Prefs.get("ai_model", "gpt-4o-mini");
+        String base = endpoint.replaceAll("/+$", "");
+        boolean anthropic = base.contains("anthropic") || key.startsWith("sk-ant-");
         String result;
         try {
+            String url = anthropic ? base + "/messages" : base + "/chat/completions";
             java.net.HttpURLConnection c = (java.net.HttpURLConnection)
-                    new java.net.URL(endpoint.replaceAll("/+$", "") + "/chat/completions").openConnection();
+                    new java.net.URL(url).openConnection();
             c.setRequestMethod("POST");
             c.setConnectTimeout(10000);
-            c.setReadTimeout(30000);
+            c.setReadTimeout(45000);
             c.setDoOutput(true);
             c.setRequestProperty("Content-Type", "application/json");
-            c.setRequestProperty("Authorization", "Bearer " + key);
+            if (anthropic) {
+                c.setRequestProperty("x-api-key", key);
+                c.setRequestProperty("anthropic-version", "2023-06-01");
+            } else {
+                c.setRequestProperty("Authorization", "Bearer " + key);
+            }
+            String user = "网页正文：\n" + pageText + "\n\n问题：" + question;
             org.json.JSONObject body = new org.json.JSONObject();
             body.put("model", model);
-            org.json.JSONArray msgs = new org.json.JSONArray();
-            msgs.put(new org.json.JSONObject().put("role", "system")
-                    .put("content", "你是网页摘要助手，用简洁中文列出要点，最多 6 条。"));
-            msgs.put(new org.json.JSONObject().put("role", "user")
-                    .put("content", pageText));
-            body.put("messages", msgs);
+            if (anthropic) {
+                body.put("max_tokens", 1024);
+                body.put("system", "你是网页阅读助手，回答简洁，必要时分条。");
+                org.json.JSONArray msgs = new org.json.JSONArray();
+                msgs.put(new org.json.JSONObject().put("role", "user").put("content", user));
+                body.put("messages", msgs);
+            } else {
+                org.json.JSONArray msgs = new org.json.JSONArray();
+                msgs.put(new org.json.JSONObject().put("role", "system")
+                        .put("content", "你是网页阅读助手，回答简洁，必要时分条。"));
+                msgs.put(new org.json.JSONObject().put("role", "user").put("content", user));
+                body.put("messages", msgs);
+            }
             c.getOutputStream().write(body.toString().getBytes("UTF-8"));
             java.io.InputStream in = c.getInputStream();
             java.io.ByteArrayOutputStream b = new java.io.ByteArrayOutputStream();
@@ -6737,8 +6806,19 @@ public class MainActivity extends AppCompatActivity {
             while ((n = in.read(buf)) > 0) b.write(buf, 0, n);
             in.close();
             org.json.JSONObject resp = new org.json.JSONObject(b.toString("UTF-8"));
-            result = resp.getJSONArray("choices").getJSONObject(0)
-                    .getJSONObject("message").getString("content");
+            if (anthropic) {
+                org.json.JSONArray arr = resp.optJSONArray("content");
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; arr != null && i < arr.length(); i++) {
+                    org.json.JSONObject seg = arr.optJSONObject(i);
+                    if (seg != null && "text".equals(seg.optString("type"))) sb.append(seg.optString("text"));
+                }
+                result = sb.toString();
+            } else {
+                result = resp.getJSONArray("choices").getJSONObject(0)
+                        .getJSONObject("message").getString("content");
+            }
+            if (result == null || result.trim().isEmpty()) result = "（模型没有返回内容）";
         } catch (Exception e) {
             result = "请求失败：" + e.getClass().getSimpleName() + " " + e.getMessage();
         }
@@ -6748,9 +6828,9 @@ public class MainActivity extends AppCompatActivity {
             box.setOrientation(LinearLayout.VERTICAL);
             box.setPadding(Theme.dp(this, 18), 0, Theme.dp(this, 18), Theme.dp(this, 16));
             box.addView(com.vane.browser.ui.Sheet.handle(this, ui));
-            TextView title = Widgets.text(this, "AI 摘要", 16, Theme.fg(this, ui));
-            title.setPadding(0, 0, 0, Theme.dp(this, 10));
-            box.addView(title);
+            TextView hdr = Widgets.text(this, title == null ? "AI 摘要" : title, 16, Theme.fg(this, ui));
+            hdr.setPadding(0, 0, 0, Theme.dp(this, 10));
+            box.addView(hdr);
             TextView body2 = Widgets.text(this, out, 13, Theme.fg(this, ui));
             body2.setTextIsSelectable(true);
             android.widget.ScrollView sv = new android.widget.ScrollView(this);
