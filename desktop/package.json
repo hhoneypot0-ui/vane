@@ -1,7 +1,7 @@
 {
   "name": "vane-desktop",
   "productName": "Vane",
-  "version": "1.86.5",
+  "version": "1.86.6",
   "description": "Vane 桌面版：浏览器 + 本地广告拦截 + 代理设置",
   "main": "main.js",
   "scripts": {
@@ -11,7 +11,7 @@
     "dist:win": "npm run sync && electron-builder --win nsis portable --x64 --publish never"
   },
   "devDependencies": {
-    "electron": "^31.0.0",
+    "electron": "31.7.7",
     "electron-builder": "^24.13.3"
   },
   "build": {
