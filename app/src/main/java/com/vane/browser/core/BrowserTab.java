@@ -281,8 +281,9 @@ public class BrowserTab {
                 if (!h.isEmpty() && (ph.equals(h) || ph.endsWith("." + h))) dark = false;
             }
         }
+        boolean forceDark = com.vane.browser.settings.Prefs.getBool("dark_web", false);
         try {
-            web.evaluateJavascript(dark ? VideoSniffer.DARK_CSS : VideoSniffer.DARK_OFF, null);
+            web.evaluateJavascript((dark && forceDark) ? VideoSniffer.DARK_CSS : VideoSniffer.DARK_OFF, null);
         } catch (Throwable ignored) {}
     }
 
@@ -447,10 +448,6 @@ public class BrowserTab {
             act.syncHomeCards(v);     // 主页：同步引擎名 + 图标
             applyDarkening();
             applyPageTheme();
-            // SPA 二次渲染只补一次，减少重复注入渲染开销
-            if (com.vane.browser.ui.Theme.isDark(act, com.vane.browser.settings.UiConfig.load())) {
-                v.postDelayed(BrowserTab.this::applyPageTheme, 1200);
-            }
             if (com.vane.browser.settings.Prefs.getBool("auto_sniff", false)) {
                 v.evaluateJavascript(VideoSniffer.JS, null);
             }
