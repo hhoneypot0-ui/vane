@@ -36,11 +36,14 @@ jobs:
       # Windows 产物同步进主 Release（v1.86.3），方便一处下载全平台
       - name: 同步到主 Release
         if: matrix.artifact == 'vane-windows'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release upload v1.86.3 dist/Vane.Setup.*.exe dist/Vane.*.exe --clobber
-          echo "已同步到 v1.86.3"
+        continue-on-error: true
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.86.3
+          fail_on_unmatched_files: false
+          files: |
+            desktop/dist/Vane.Setup.*.exe
+            desktop/dist/Vane.*.exe
 
       - uses: actions/upload-artifact@v4
         with:
