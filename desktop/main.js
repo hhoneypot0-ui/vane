@@ -1,6 +1,6 @@
 // Vane 桌面版：多标签浏览器 + 本地广告拦截 + 代理设置。
 // 设计上尽量贴近 Android 端的取舍：一个程序干完，界面走深色，规则本地跑。
-const { app, BrowserWindow, WebContentsView, ipcMain, session, Menu } = require('electron');
+const { app, BrowserWindow, WebContentsView, ipcMain, session, Menu, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -11,6 +11,21 @@ const HOSTS = path.join(ASSETS, 'hosts.txt');
 const HOME = 'vane://home';
 const TOOLBAR_H = 56;
 const CONFIG = path.join(app.getPath('userData'), 'config.json');
+const LOG = path.join(app.getPath('userData'), 'vane-error.log');
+
+function logError(where, err) {
+  const line = `[${new Date().toISOString()}] ${where}: ${err && err.stack ? err.stack : err}\n`;
+  try { fs.appendFileSync(LOG, line); } catch {}
+  console.error(line);
+}
+
+process.on('uncaughtException', (e) => {
+  logError('uncaughtException', e);
+  try {
+    dialog.showErrorBox('Vane 出错了', `${e && e.message ? e.message : e}\n\n日志：${LOG}`);
+  } catch {}
+});
+process.on('unhandledRejection', (e) => logError('unhandledRejection', e));
 
 let win = null;
 let toolbar = null;
@@ -76,11 +91,27 @@ function pushState() {
   toolbar.webContents.send('vane:state', {
     url: t ? t.url : '',
     title: t ? t.title : 'Vane',
-    canBack: t ? t.view.webContents.navigationHistory.canGoBack() : false,
-    canForward: t ? t.view.webContents.navigationHistory.canGoForward() : false,
+    canBack: canGo(t, 'back'),
+    canForward: canGo(t, 'forward'),
     tabs: tabs.map((x, i) => ({ title: x.title || '新标签页', active: i === active })),
     rules: blocklist.size
   });
+}
+
+function nav(wc) {
+  return (wc && wc.navigationHistory) ? wc.navigationHistory : null;
+}
+function canGo(t, dir) {
+  if (!t) return false;
+  const h = nav(t.view.webContents);
+  if (h) return dir === 'back' ? h.canGoBack() : h.canGoForward();
+  return dir === 'back' ? t.view.webContents.canGoBack() : t.view.webContents.canGoForward();
+}
+function go(t, dir) {
+  if (!t) return;
+  const h = nav(t.view.webContents);
+  if (h) { dir === 'back' ? h.goBack() : h.goForward(); return; }
+  dir === 'back' ? t.view.webContents.goBack() : t.view.webContents.goForward();
 }
 
 function normalize(input) {
@@ -126,6 +157,10 @@ function newTab(url) {
 }
 
 /** 打开内置主页，并补上 Android 端由原生注入的那几个接口。 */
+function tabOf(wc) {
+  return tabs.find((t) => t.view.webContents === wc) || null;
+}
+
 function loadHome(wc) {
   wc.loadFile(path.join(ASSETS, 'home.html')).then(() => {
     wc.executeJavaScript(
@@ -157,8 +192,8 @@ function handleVaneUrl(wc, raw) {
       case 'focusAddress': toolbar.webContents.focus(); toolbar.webContents.executeJavaScript("document.getElementById('addr').focus()"); break;
       case 'home': loadHome(wc); break;
       case 'reload': wc.reload(); break;
-      case 'back': if (wc.navigationHistory.canGoBack()) wc.navigationHistory.goBack(); break;
-      case 'forward': if (wc.navigationHistory.canGoForward()) wc.navigationHistory.goForward(); break;
+      case 'back': if (canGo(tabOf(wc), 'back')) go(tabOf(wc), 'back'); break;
+      case 'forward': if (canGo(tabOf(wc), 'forward')) go(tabOf(wc), 'forward'); break;
       case 'newTab': newTab(HOME); break;
       case 'closeTab': closeTab(); break;
       default: console.log('[vane] 桌面端暂未实现动作：', id);
@@ -205,8 +240,8 @@ ipcMain.on('vane:navigate', (_e, url) => {
   if (target === HOME) loadHome(t.view.webContents);
   else t.view.webContents.loadURL(target);
 });
-ipcMain.on('vane:back', () => { const t = tabs[active]; if (t && t.view.webContents.navigationHistory.canGoBack()) t.view.webContents.navigationHistory.goBack(); });
-ipcMain.on('vane:forward', () => { const t = tabs[active]; if (t && t.view.webContents.navigationHistory.canGoForward()) t.view.webContents.navigationHistory.goForward(); });
+ipcMain.on('vane:back', () => { const t = tabs[active]; if (canGo(t, 'back')) go(t, 'back'); });
+ipcMain.on('vane:forward', () => { const t = tabs[active]; if (canGo(t, 'forward')) go(t, 'forward'); });
 ipcMain.on('vane:reload', () => { const t = tabs[active]; if (t) t.view.webContents.reload(); });
 ipcMain.on('vane:home', () => { const t = tabs[active]; if (t) loadHome(t.view.webContents); });
 ipcMain.on('vane:new-tab', () => newTab(HOME));
@@ -217,6 +252,7 @@ ipcMain.handle('vane:rules', () => blocklist.size);
 
 // ---------- 启动 ----------
 app.whenReady().then(async () => {
+  try { fs.appendFileSync(LOG, `[${new Date().toISOString()}] start v${app.getVersion()} ${process.versions.electron}\n`); } catch {}
   loadRules();
   session.defaultSession.webRequest.onBeforeRequest((details, cb) => {
     if (isBlocked(details.url)) return cb({ cancel: true });
@@ -228,8 +264,14 @@ app.whenReady().then(async () => {
     { label: '文件', submenu: [{ role: 'quit', label: '退出' }] },
     { label: '视图', submenu: [{ role: 'reload' }, { role: 'toggleDevTools' }, { role: 'togglefullscreen' }] }
   ]));
-  createWindow();
+  try {
+    createWindow();
+  } catch (e) {
+    logError('createWindow', e);
+    dialog.showErrorBox('Vane 启动失败', `${e && e.message}\n\n日志：${LOG}`);
+    throw e;
+  }
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
-});
+}).catch((e) => logError('whenReady', e));
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
