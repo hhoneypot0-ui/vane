@@ -31,6 +31,16 @@ windows-latest 上打包，跑一次 workflow 就能在 Artifacts 里下到 `.ex
   写进用户配置，下次启动自动生效
 - 外链在当前窗口新开标签；深色界面，`home.html` 直接复用
 
+## 打不开怎么办
+
+启动失败会弹一个框，同时把堆栈写进日志：
+
+- 日志位置：`%APPDATA%\Vane\vane-error.log`（Windows）
+- 也可以从源码跑，直接看终端输出：`cd desktop && npm install && npm start`
+
+如果日志里是 `WebContentsView is not a constructor`，说明 Electron 版本低于 30，把
+`package.json` 里的 `electron` 升到 `^31` 再装。
+
 ## 还没有
 
 - 订阅导入与分流规则（只支持单一代理地址，没有「国内直连 / 境外走代理」的判断）
