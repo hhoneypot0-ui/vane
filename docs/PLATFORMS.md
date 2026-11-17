@@ -1,34 +1,42 @@
-# 各平台现状与移植映射
+# 跨平台现状
 
-| 平台 | 状态 | 产物 |
-| --- | --- | --- |
-| Android arm64-v8a | 已发布 | `vane-1.86.3-arm64.apk`（31.9 MB） |
-| Android armeabi-v7a（32 位） | 已发布 | `vane-1.86.3-armv7.apk`（32.5 MB） |
-| Windows / Linux | 可用（轻量版） | `desktop/`：多标签 + 地址栏 + 本地拦截 + 代理设置；`.github/workflows/desktop.yml` 出 exe |
-| iOS | 浏览器可跑 + 拦截规则已生成；代理需付费账号 | `ios/`（Swift + WKWebView + WKContentRuleList + NetworkExtension 骨架） |
+| 平台 | 状态 |
+| --- | --- |
+| Android arm64-v8a | 已发布，`vane-1.86.3-arm64.apk` |
+| Android armeabi-v7a（32 位） | 已发布，`vane-1.86.3-armv7.apk` |
+| Windows / Linux | 未实现 |
+| iOS | 未实现 |
 
-## 为什么不是「同一份代码编四次」
+## 走过哪些弯路（给接手的人）
 
-Android 端几乎所有能力都长在三个系统件上，换平台得各自重写：
+**桌面端（Electron）**
+做过两版：先 `WebContentsView`（要求 Electron 30+），再换 `BrowserView`；
+Windows 上仍然在启动阶段抛 `A JavaScript error occurred in the main process`。
+最后一次已知的堆栈是：
 
-| 能力 | Android 实现 | Windows / Linux | iOS |
+```
+TypeError: t.view.webContents.navigationHistory.canGoBack is not a function
+```
+
+`navigationHistory` 这个 API 在 30 之后改过形状，即便加了 typeof 探测与旧 API 兜底，
+Windows 侧仍未跑通。若重做，建议：
+
+1. 直接用稳定老 API：`webContents.canGoBack() / goBack()`，不碰 `navigationHistory`；
+2. 或者干脆不用多视图：单 `BrowserWindow` + 页面内自带地址栏（把工具栏做进注入的 HTML）；
+3. CI 里固定 `electron` 精确版本，并在 Windows 真机跑一次 `npm start` 再打包。
+
+**iOS**
+WKWebView 外壳能跑，拦截规则也能用（`hosts.txt` → `WKContentRuleList`，约 7.8 万条切成 6 片）。
+卡点是代理：iOS 只允许 NetworkExtension（Packet Tunnel），需要付费开发者账号与专用 entitlement，
+免费账号侧载只能装浏览器部分。要重做，先确认账号类型再动手。
+
+## 移植映射
+
+| 能力 | Android 实现 | 桌面建议 | iOS 建议 |
 | --- | --- | --- | --- |
-| 网页渲染 | 系统 WebView | WebView2 / WebKitGTK（Electron 用 Chromium） | WKWebView |
-| 代理 | 本地 HTTP 代理进程 + WebView 指定代理 | 系统代理 / PAC / TUN（需自建） | NetworkExtension（付费账号 + entitlement） |
-| 广告拦截 | `FilterEngine` + 本地规则文本 | Electron `webRequest` 取消请求（原型已接） | `WKContentRuleList`（规则需先编译成 JSON） |
-| 隐私空间 | AES-GCM + Android Keystore | DPAPI / libsecret | Keychain + CryptoKit |
-| 界面自定义 | `UiConfig` 的数据驱动壳 | 需重做一套窗口 chrome | 同左 |
-| 用户脚本 | `UserScripts` + GM 桥 | 可注入到 `webContents` | `WKUserScript` + message handler |
-
-## 现状说明
-
-- **32 位（armv7）**：`app-armeabi-v7a-debug.apk` 由同一次构建产出，代理核心有对应 ABI 的二进制，已随 release 发布。
-- **Windows / Linux**：`desktop/` 已经能日常用——多标签、地址栏、前进后退、
-  7.8 万条规则的本地拦截、单一代理地址（socks5/http）设置；缺订阅分流、隐私空间、脚本、同步。
-  Windows 包用 GitHub Actions 的 windows-latest 出，不依赖本机。
-- **iOS**：`ios/` 里浏览器部分能在 Xcode 直接跑——WKWebView、地址栏、主页，
-  外加 `RulesLoader` 把 `hosts.txt` 生成的 **6 个分片、78,307 条**规则编译成 `WKContentRuleList`。
-  代理必须走 NetworkExtension（`VaneProxy/` 骨架 + entitlement 已备），但需要付费开发者账号；
-  免费账号侧载只能装浏览器部分。
-
-三端的资源（`home.html`、广告规则、播放器页）是共享的，重做的部分是「壳」和「系统能力对接」。
+| 渲染 | 系统 WebView | WebView2 / WebKitGTK | WKWebView |
+| 代理 | 本地 HTTP 代理 + WebView 指定代理 | 系统代理 / PAC / TUN | NetworkExtension |
+| 广告拦截 | `FilterEngine` + 本地规则文本 | 请求层取消（`webRequest`） | `WKContentRuleList` |
+| 隐私空间 | AES-GCM + Keystore | DPAPI / libsecret | Keychain + CryptoKit |
+| 界面自定义 | `UiConfig` 数据驱动 | 需重写窗口 chrome | 同左 |
+| 用户脚本 | `UserScripts` + GM 桥 | `webContents` 注入 | `WKUserScript` |
