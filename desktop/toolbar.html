@@ -28,6 +28,7 @@
   <button id="home" title="主页">⌂</button>
   <input id="addr" spellcheck="false" placeholder="搜索或输入网址">
   <span class="tag" id="rules"></span>
+  <span class="tag" id="ver" title="版本"></span>
   <button id="proxy" title="设置代理">⚙</button>
 </div>
 <div class="tabs" id="tabs"></div>
@@ -41,6 +42,7 @@
     $('back').disabled = !s.canBack;
     $('fwd').disabled = !s.canForward;
     $('rules').textContent = s.rules ? s.rules.toLocaleString() + ' 条规则' : '';
+    $('ver').textContent = s.version ? 'v' + s.version : '';
     const box = $('tabs'); box.innerHTML = '';
     s.tabs.forEach((t, i) => {
       const d = document.createElement('div');
